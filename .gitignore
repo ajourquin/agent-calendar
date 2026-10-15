@@ -1,0 +1,51 @@
+# Credentials - never commit
+.env
+.mcp.json
+*.pem
+*.key
+credentials.json
+
+# Claude Code: commit skills, never runtime data
+.claude/settings.json
+.claude/settings.local.json
+# Session history: holds the content of every event request
+.claude/projects/
+.claude/statsig/
+.claude/todos/
+.claude/debug/
+.claude/sessions/
+.claude/shell-snapshots/
+.claude/*
+!.claude/skills/
+!.claude/agents/
+!.claude/commands/
+/.claude.json
+
+# Trinity platform runtime state; authored hooks stay tracked
+.trinity/*
+!.trinity/pre-check
+!.trinity/post-check
+!.trinity/pre-snapshot
+!.trinity/setup.sh
+!.trinity/persistent-processes.allow
+
+# Runtime data written by the agent inside its container (event log, cache)
+# and the generated dashboard
+/calendar/
+/dashboard.yaml
+# Never commit any cloud credential file
+/.config/
+content/
+
+# Home-directory files created by the base image inside the container
+/.bash_logout
+/.bashrc
+/.profile
+/.sudo_as_admin_successful
+/.cache/
+/.local/
+/.tmp/
+
+# Python
+__pycache__/
+*.pyc

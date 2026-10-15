@@ -1,0 +1,34 @@
+name: calendar
+display_name: "Calendar"
+description: |
+  Keeps the family's dedicated Google Calendar up to date with the events sent by
+  the other agents (pedagogical days from the school agent; later deliveries and
+  appointments from the mail agent), and answers what is planned.
+tagline: "The family calendar"
+version: "1.0"
+author: "Aurelien Jourquin"
+
+resources:
+  cpu: "1"
+  memory: "1g"
+
+runtime:
+  type: claude-code
+
+credentials:
+  env_file:
+    - GOOGLE_CALENDAR_ID
+    - GOOGLE_SERVICE_ACCOUNT_JSON_B64
+
+capabilities:
+  - google_calendar
+
+use_cases:
+  - "What is planned in the next two weeks?"
+  - "Add a dentist appointment for my younger child on Tuesday at 3:30 pm"
+  - "Move the appointment of Tuesday to Thursday, same time"
+  - "Which pedagogical days are the children registered for?"
+
+skills:
+  - name: calendar-events
+    description: "Read and change the dedicated Google Calendar (event requests from other agents, user requests)"
