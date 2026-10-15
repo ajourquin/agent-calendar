@@ -17,7 +17,8 @@
 EVENT REQUEST (JSON):
   {"action": "upsert", "key": "school:e6d53d39b3:emma", "title": "...",
    "date": "2026-11-19", "description": "...", "source": "school"}
-  {"action": "upsert", "key": "...", "title": "...", "start": "2026-11-19 14:00", "end": "2026-11-19 15:00", ...}
+  {"action": "upsert", "key": "...", "title": "...", "start": "2026-11-19 14:00", "end": "2026-11-19 15:00",
+   "location": "...", ...}
   {"action": "delete", "key": "...", "source": "school"}
 
 Safety:
@@ -58,7 +59,7 @@ API = "https://www.googleapis.com/calendar/v3"
 KEY_PROPERTY = "agentKey"
 SOURCES = {"school", "mail", "user"}
 KEY_RE = re.compile(r"^[a-z]+:[A-Za-z0-9:._-]{1,120}$")
-MAX_TITLE, MAX_DESCRIPTION = 200, 2000
+MAX_TITLE, MAX_DESCRIPTION, MAX_LOCATION = 200, 2000, 300
 
 
 # --- helpers ------------------------------------------------------------------
@@ -175,6 +176,7 @@ def build_event(req: dict) -> dict:
     event = {
         "summary": title,
         "description": str(req.get("description") or "")[:MAX_DESCRIPTION],
+        "location": " ".join(str(req.get("location") or "").split())[:MAX_LOCATION],
         "extendedProperties": {"private": {KEY_PROPERTY: key, "source": source}},
     }
     if req.get("date"):
@@ -219,6 +221,7 @@ def instant(value: dict) -> str | None:
 def same(existing: dict, wanted: dict) -> bool:
     return (existing.get("summary", "") == wanted["summary"]
             and existing.get("description", "") == wanted["description"]
+            and existing.get("location", "") == wanted["location"]
             and instant(existing.get("start", {})) == instant(wanted["start"])
             and instant(existing.get("end", {})) == instant(wanted["end"]))
 
@@ -299,7 +302,7 @@ def cmd_apply(args) -> int:
 
 def cmd_upsert(args) -> int:
     req = {k: v for k, v in vars(args).items() if k in ("key", "title", "date", "end_date", "start", "end",
-                                                          "description", "source") and v}
+                                                          "description", "location", "source") and v}
     print(upsert(req))
     return 0
 
@@ -333,6 +336,7 @@ def main() -> int:
     p.add_argument("--start")
     p.add_argument("--end")
     p.add_argument("--description")
+    p.add_argument("--location")
     p.add_argument("--source", default="user")
     p = sub.add_parser("delete")
     p.add_argument("--key", required=True)
