@@ -30,4 +30,5 @@ python3 $C delete --source user --key user:dentiste-emma
 
 - Each event carries its **key** (private extended property `agentKey`): the same key updates the event instead of duplicating it. A key starts with its source (`school:`, `mail:`, `user:`), so a source only touches its own events.
 - All-day events with `date` (and `end_date`, inclusive); timed events with `start`/`end` in local time (America/Toronto); optional `location` (`--location`).
+- Relative date (requests from other agents only): `"after": {"event": "💵 Paie", "from": "YYYY-MM-DD", "weekday": "saturday"}` instead of `date` → all-day event on the first such weekday **strictly after** the first event with that title (emoji, accents and case ignored) on or after `from`, looked up in this calendar within 62 days. No such event → `ERROR`, nothing created.
 - Credentials (`~/.env`): `GOOGLE_CALENDAR_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON_B64` (service account shared on that calendar only, "Make changes to events").

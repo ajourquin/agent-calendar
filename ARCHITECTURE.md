@@ -12,6 +12,7 @@ school (daycare.py, after a confirmed registration)
 Claude Code (calendar) ── copies the JSON verbatim ──► calendar_events.py apply '<json>'
    │
    ├─ validate: action, source, key prefixed by its source, title, date or start/end
+   ├─ "after" rule (relative date): first <weekday> after the next event titled <event> in this calendar
    ├─ find the event by key (private extended property agentKey)
    ├─ create / update / unchanged / delete  ──► Google Calendar API v3 (service account, JWT bearer)
    └─ refresh ~/calendar/upcoming.json ──► scripts/update_dashboard.py ──► ~/dashboard.yaml

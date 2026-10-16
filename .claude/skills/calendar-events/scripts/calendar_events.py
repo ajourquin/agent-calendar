@@ -19,6 +19,10 @@ EVENT REQUEST (JSON):
    "date": "2026-11-19", "description": "...", "source": "school"}
   {"action": "upsert", "key": "...", "title": "...", "start": "2026-11-19 14:00", "end": "2026-11-19 15:00",
    "location": "...", ...}
+  {"action": "upsert", "key": "...", "title": "...", "source": "school",
+   "after": {"event": "💵 Paie", "from": "2026-10-05", "weekday": "saturday"}}
+        All-day, on the first <weekday> strictly after the first event titled <event>
+        (emoji, accents and case ignored) on or after <from>, within 62 days.
   {"action": "delete", "key": "...", "source": "school"}
 
 Safety:
@@ -41,6 +45,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -60,6 +65,9 @@ KEY_PROPERTY = "agentKey"
 SOURCES = {"school", "mail", "user"}
 KEY_RE = re.compile(r"^[a-z]+:[A-Za-z0-9:._-]{1,120}$")
 MAX_TITLE, MAX_DESCRIPTION, MAX_LOCATION = 200, 2000, 300
+WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+JOURS = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
+AFTER_WINDOW_DAYS = 62
 
 
 # --- helpers ------------------------------------------------------------------
@@ -198,6 +206,46 @@ def build_event(req: dict) -> dict:
     return event
 
 
+def title_words(text: str) -> str:
+    """'💵 Paie' -> 'paie': letters and digits only, no accents, lowercase."""
+    text = unicodedata.normalize("NFKD", text or "")
+    text = "".join(c if c.isalnum() else " " for c in text if not unicodedata.combining(c))
+    return " ".join(text.lower().split())
+
+
+def local_day(value: dict) -> date:
+    if value.get("date"):
+        return date.fromisoformat(value["date"])
+    return datetime.fromisoformat(value["dateTime"]).astimezone(LOCAL_TZ).date()
+
+
+def resolve_after(req: dict) -> dict:
+    """{"after": {...}} -> the same request with "date" set, and the reference event in the description."""
+    rule = req["after"]
+    if not isinstance(rule, dict):
+        raise SystemExit("REFUSED: after must be {\"event\": ..., \"from\": YYYY-MM-DD, \"weekday\": ...}.")
+    wanted = title_words(str(rule.get("event", "")))
+    weekday = str(rule.get("weekday", "")).lower()
+    if not wanted or weekday not in WEEKDAYS:
+        raise SystemExit(f"REFUSED: after needs an event title and a weekday ({', '.join(WEEKDAYS)}).")
+    first = parse_day(str(rule.get("from", "")))
+    start = datetime.combine(first, datetime.min.time(), LOCAL_TZ)
+    found = api("GET", events_path(), {"timeMin": start.isoformat(),
+                                       "timeMax": (start + timedelta(days=AFTER_WINDOW_DAYS)).isoformat(),
+                                       "singleEvents": "true", "orderBy": "startTime", "maxResults": 250})
+    days = sorted(local_day(e["start"]) for e in (found or {}).get("items", [])
+                  if title_words(e.get("summary", "")) == wanted and local_day(e["start"]) >= first)
+    if not days:
+        raise RuntimeError(f"no event '{rule.get('event')}' in the calendar between {first} and "
+                           f"{first + timedelta(days=AFTER_WINDOW_DAYS)}: nothing created")
+    reference = days[0]
+    target = reference + timedelta(days=(WEEKDAYS.index(weekday) - reference.weekday()) % 7 or 7)
+    note = f"Date : le {JOURS[WEEKDAYS.index(weekday)]} qui suit « {rule.get('event')} » du {reference.isoformat()}."
+    description = "\n".join(x for x in (str(req.get("description") or ""), note) if x)
+    return {k: v for k, v in req.items() if k not in ("after", "start", "end", "end_date")} | {
+        "date": target.isoformat(), "description": description}
+
+
 def when(event: dict) -> str:
     start = event.get("start", {})
     if "date" in start:
@@ -227,6 +275,9 @@ def same(existing: dict, wanted: dict) -> bool:
 
 
 def upsert(req: dict) -> str:
+    if req.get("after"):
+        build_event(req | {"date": "2000-01-01"})  # key / source / title checks before any API call
+        req = resolve_after(req)
     wanted = build_event(req)
     key = req["key"]
     existing = find(key)

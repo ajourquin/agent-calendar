@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The family calendar. It keeps **one dedicated Google Calendar** ("Famille (agents)") up to date with events sent by the other agents: for now the pedagogical days the `school` agent registered the children to; later Amazon deliveries and appointments from the `mail` agent.
+The family calendar. It keeps **one dedicated Google Calendar** ("Famille (agents)") up to date with events sent by the other agents: the pedagogical days the `school` agent registered the children to and the reminders to pay the school's account statements, Amazon deliveries and appointments from the `mail` agent.
 
 ## Language
 
